@@ -1,60 +1,112 @@
----
+
 services:
   db:
-    image: shaikmustafa/arshad:db
-    deploy:
-      replicas: 1
+    image: satishpolaka/dbimage:v1
     ports:
       - "3306:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+    deploy:
+      replicas: 1
+      resources:
+        limits:
+          cpus: "0.50"
+          memory: 512M
+        reservations:
+          cpus: "0.25"
+          memory: 256M
     networks:
       - mynetwork
 
   auth_service:
-    image: shaikmustafa/arshad:auth
-    deploy:
-      replicas: 1
+    image: satishpolaka/auth-service:v1
     ports:
       - "5001:5001"
-    networks:
-      - mynetwork
+    volumes:
+      - auth_data:/app/data
+    deploy:
+      replicas: 1
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 256M
+        reservations:
+          cpus: "0.10"
+          memory: 128M
     depends_on:
       - db
-    
+    networks:
+      - mynetwork
 
   book_service:
-    image: shaikmustafa/arshad:book
-    deploy:
-      replicas: 1
+    image: satishpolaka/book-service:v1
     ports:
       - "5002:5002"
-    networks:
-      - mynetwork
-    depends_on:
-      - db
-  borrow_service:
-    image: shaikmustafa/arshad:borrow
+    volumes:
+      - book_data:/app/data
     deploy:
       replicas: 1
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 256M
+        reservations:
+          cpus: "0.10"
+          memory: 128M
+    depends_on:
+      - db
+    networks:
+      - mynetwork
+
+  borrow_service:
+    image: satishpolaka/borrow-service:v1
     ports:
       - "5003:5003"
-    networks:
-      - mynetwork
-    depends_on:
-      - db
-
-  frontend:
-    image: shaikmustafa/arshad:frontend
+    volumes:
+      - borrow_data:/app/data
     deploy:
       replicas: 1
-    ports:
-      - "5000:5000"
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 256M
+        reservations:
+          cpus: "0.10"
+          memory: 128M
+    depends_on:
+      - db
     networks:
       - mynetwork
+
+  frontend:
+    image: satishpolaka/python-app:v1
+    ports:
+      - "5000:5000"
+    volumes:
+      - frontend_data:/app/data
+    deploy:
+      replicas: 1
+      resources:
+        limits:
+          cpus: "0.50"
+          memory: 512M
+        reservations:
+          cpus: "0.25"
+          memory: 256M
     depends_on:
       - auth_service
       - book_service
       - borrow_service
+    networks:
+      - mynetwork
+
+volumes:
+  db_data:
+  auth_data:
+  book_data:
+  borrow_data:
+  frontend_data:
 
 networks:
   mynetwork:
-    driver: bridge
+    driver: overlay
